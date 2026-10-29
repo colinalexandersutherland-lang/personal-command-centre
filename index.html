@@ -489,4 +489,56 @@ for(let id of ['m59BaselineLift','m59LogLift']){const el=$(id),v=el.value;if(!el
 $('m59History').innerHTML='<h3 style="margin-top:15px">Recent strength sets</h3>'+(st.lifts.length?st.lifts.slice(-6).reverse().map(l=>'<div class="entry"><b>'+escapeHTML(l.lift)+'</b><div class="muted small">'+l.date+' · '+l.weight+' kg · '+l.reps.join(',')+' · RPE '+l.rpe+'</div></div>').join(''):'<div class="muted">No detailed sets logged yet.</div>');};
 const priorRender=window.render;window.render=function(){priorRender();m59Render()};m59Render();
 })();
+</script><style id="micro591styles">
+#train #adaptive59{order:1}#train #strength59{order:2}
+#train{display:none}#train.active{display:flex;flex-direction:column}
+#train>.sectionhead{order:0}#train>.micro-overview{order:3}
+#train>.card:not(#adaptive59):not(#strength59){order:4}
+#train>.card:has(#trainingSchedule),#train>.card:has(#dailyPrescription){display:none!important}
+.m591-day{border:1px solid #30493a;border-radius:14px;margin:9px 0;background:#16271d;overflow:hidden}
+.m591-day>summary{padding:13px;list-style:none;cursor:pointer}
+.m591-day>summary::-webkit-details-marker{display:none}
+.m591-day[open]>summary{border-bottom:1px solid #355241}
+.m591-daybody{padding:13px}
+.m591-badge{font-size:10px;background:#2b4c38;border-radius:12px;padding:4px 8px;color:#d4f2dd}
+.m591-ex{padding:9px 0;border-bottom:1px solid #2a4032;font-size:13px}
+.m591-ex:last-child{border:0}
+.m591-ex small{display:block;color:#a8beaf;margin-top:3px}
+</style><script id="micro591script">
+/* V5.9.1: adaptive projected week, expanded day details, legacy prescription retirement. */
+(function(){
+'use strict';
+const tpl={
+'Anterior':[['Back squat','4 × 3–5'],['Bench press','4 × 3–5'],['Bulgarian split squat','3 × 6–8 / leg'],['Overhead press','3 × 5–6'],['Ab wheel / dead bug','3 controlled sets']],
+'Posterior':[['Deadlift','3 × 3–5'],['Weighted pull-ups','4 × 4–6'],['Romanian deadlift','2 × 6–8'],['Chest-supported row','3 × 6–10'],['Farmer carry','3 × 30–40 m']],
+'Full body':[['Broad jump','3 × 3'],['Front squat','3 × 4–6'],['Incline bench press','3 × 5–8'],['Pull-ups','3 × 6–10'],['Single-leg RDL','2 × 8 / leg'],['Suitcase carry','3 × 30 m / side']]
+};
+const dadd=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return [x.getFullYear(),String(x.getMonth()+1).padStart(2,'0'),String(x.getDate()).padStart(2,'0')].join('-')};
+const workoutDay=w=>w.day||((String(w.date||'').match(/(\d{2})\/(\d{2})\/(\d{4})/)||[]).slice(1).reverse().join('-'))||String(w.date||'').slice(0,10);
+const kind=t=>/tab|loaded march/i.test(t)?'tab':/run|interval/i.test(t)?'run':/strength|gym|push|pull|legs|anterior|posterior|full body|squat|deadlift/i.test(t)?'strength':/sport|swim/i.test(t)?'activity':'other';
+const strengthName=t=>/posterior|pull/i.test(t)?'Posterior':/full body/i.test(t)?'Full body':/anterior|push|legs/i.test(t)?'Anterior':null;
+const hard=t=>/tab|interval|hard run/i.test(t);
+const store=()=>{state.adaptive59??={plans:{},baselines:{},lifts:[]};return state.adaptive59};
+function liftWeight(name){const st=store(),logs=(st.lifts||[]).filter(l=>l.lift===name).sort((a,b)=>b.date.localeCompare(a.date)),last=logs[0],base=st.baselines?.[name];const group=Object.keys(tpl).find(k=>tpl[k].some(e=>e[0]===name));const prescription=tpl[group]?.find(e=>e[0]===name)?.[1]||'3 × 5';const min=Number(prescription.match(/–(\d+)/)?.[1]||5),target=Number(prescription.match(/^(\d+)/)?.[1]||3);if(last){const inc=/bench|press|pull-up/i.test(name)?2.5:5;const progress=last.reps.length>=target&&last.reps.every(r=>r>=min)&&last.rpe<=8;return (last.weight+(progress?inc:0)).toFixed(1)+' kg '+(progress?'· progression':'· repeat / reassess')}if(base){if(/pull-up/i.test(name))return 'Bodyweight / controlled load';return (Math.max(0,Math.floor((base.weight*(1+base.reps/30)*.78)/2.5)*2.5)).toFixed(1)+' kg · estimated start'}return 'Baseline required';}
+function planWeek(){const today=dateKey(),wd=new Date(today+'T12:00:00').getDay(),monday=dadd(today,-((wd+6)%7)),st=store(),dates=Array.from({length:7},(_,i)=>dadd(monday,i));const recent=(state.workouts||[]).filter(w=>workoutDay(w)>=dadd(today,-13)&&workoutDay(w)<=today);let lastStrength=recent.map(w=>({day:workoutDay(w),name:strengthName(w.type)})).filter(x=>x.name).sort((a,b)=>a.day.localeCompare(b.day));let used=new Set(lastStrength.filter(x=>x.day>=monday).map(x=>x.name));let order=['Anterior','Posterior','Full body'];let lastAssigned=lastStrength.length?lastStrength[lastStrength.length-1].day:null;let assigned=0;
+return dates.map(d=>{const actual=(state.workouts||[]).filter(w=>workoutDay(w)===d),army=st.plans?.[d],a=army?.type||'',c=state.checkins?.[d]||{},next=st.plans?.[dadd(d,1)]?.type||'',previous=(state.workouts||[]).filter(w=>workoutDay(w)===dadd(d,-1));let title='',why='',name=null,tag='Suggested';const recovery=(c.sleep&&Number(c.sleep)<6.5)||(c.soreness&&Number(c.soreness)>=7)||(c.energy&&Number(c.energy)<=3);const demanding=actual.some(w=>hard(w.type)||Number(w.rpe)>=8)||hard(a)||actual.some(w=>kind(w.type)==='tab');const already=actual.some(w=>kind(w.type)==='strength');if(d<today){title=actual.length?'Completed / historical':'No session logged';tag='History';why='Past sessions are not assumed completed.'}
+else if(recovery){title='Recovery priority';why='Logged sleep, energy or soreness suggests reducing optional training.'}
+else if(demanding){title='Recovery / no additional hard training';why='Demanding Army or completed training takes priority.'}
+else if(already){title='Strength completed';why='A strength session has already been logged.'}
+else if(hard(next)){title='Easy recovery / mobility';why='A demanding Army session is planned tomorrow.'}
+else if(previous.some(w=>kind(w.type)==='tab'||Number(w.rpe)>=9)){title='Recovery or easy aerobic';why='A demanding session was logged yesterday.'}
+else if(lastAssigned&&Math.abs((new Date(d+'T12:00:00')-new Date(lastAssigned+'T12:00:00'))/86400000)<2){title='Easy aerobic / recovery';why='Allow time between additional strength sessions.'}
+else if(assigned>=3){title='Easy aerobic / recovery';why='Three optional strength sessions are already suggested in this week.'}
+else {name=order.find(n=>!used.has(n));if(name){title=name+' strength';why='Next available strength emphasis, spaced around known commitments.';used.add(name);lastAssigned=d;assigned++;}else{title='Easy aerobic / recovery';why='All three strength emphases have been covered or scheduled.'}}
+if(!a)why+=' Army phys is unknown; confirm before adding a demanding personal session.';
+if(!c.saved&&d===today)why+=' Recovery check-in not yet saved.';
+return {d,actual,army,title,why,name,tag};});}
+function render591(){const root=document.getElementById('m59Week');if(!root)return;const days=planWeek(),today=dateKey(),tod=days.find(x=>x.d===today);const brief=document.getElementById('m59Brief');if(brief&&tod){brief.innerHTML='<span class="pill">'+(tod.army?.type?'ARMY PHYS PLANNED':'ARMY PHYS UNKNOWN')+'</span><div class="atlas-headline">'+escapeHTML(tod.title)+'</div><p class="muted">'+escapeHTML(tod.why)+'</p><p class="muted small">Tap any day below for the session details. Planned Army phys is not counted as completed.</p>';}
+const openDay=root.querySelector('details[open]')?.dataset.date;
+root.innerHTML=days.map(x=>{const label=new Date(x.d+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'}),rows=x.name?tpl[x.name].map(([n,p])=>'<div class="m591-ex"><b>'+escapeHTML(n)+'</b><small>'+escapeHTML(p)+' · '+escapeHTML(liftWeight(n))+'</small></div>').join(''):'<p class="muted small">No additional gym prescription. Log completed training and update Army phys as it changes.</p>';
+return '<details class="m591-day" data-date="'+x.d+'" '+((openDay?openDay===x.d:x.d===today)?'open':'')+'><summary><div class="row"><b>'+escapeHTML(label)+'</b><span class="m591-badge">'+(x.d===today?'TODAY':'DETAILS ↓')+'</span></div><div class="muted small">Army: '+escapeHTML(x.army?.type||'Unknown')+(x.army?.notes?' · '+escapeHTML(x.army.notes):'')+'</div><div class="muted small">Completed: '+(x.actual.length?x.actual.map(w=>escapeHTML(w.type)).join(', '):'Not logged')+'</div><div style="margin-top:6px"><strong>'+escapeHTML(x.title)+'</strong></div></summary><div class="m591-daybody"><div class="muted small">'+escapeHTML(x.why)+'</div>'+rows+'<p class="muted small">Working weights are provisional until baseline sets are logged. Keep 2–3 reps in reserve; adjust for actual fatigue, technique and unit duties.</p></div></details>';}).join('');}
+const oldRender=window.render;window.render=function(){oldRender();render591()};const oldPlan=window.m59SavePlan;window.m59SavePlan=function(){oldPlan();render591()};const oldLift=window.m59SaveLift;window.m59SaveLift=function(){oldLift();render591()};const oldBaseline=window.m59SaveBaseline;window.m59SaveBaseline=function(){oldBaseline();render591()};const oldWorkout=window.addWorkout;window.addWorkout=function(){oldWorkout();render591()};
+const header=document.querySelector('.brand-version');if(header)header.textContent='/ V5.9.1';const oldTag=document.querySelector('#adaptive59 .pill');if(oldTag)oldTag.textContent='V5.9.1';
+render591();
+})();
 </script></body></html>
