@@ -541,4 +541,39 @@ const oldRender=window.render;window.render=function(){oldRender();render591()};
 const header=document.querySelector('.brand-version');if(header)header.textContent='/ V5.9.2';const oldTag=document.querySelector('#adaptive59 .pill');if(oldTag)oldTag.textContent='V5.9.2';
 render591();
 })();
+</script><style id="micro593styles">
+.goal593-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.goal593-tile{background:#203629;border:1px solid #385543;border-radius:15px;padding:13px;min-width:0}.goal593-icon{font-size:24px}.goal593-title{font-size:13px;font-weight:750;margin:5px 0}.goal593-amount{font-size:20px;font-weight:800}.goal593-meta{font-size:11px;color:#adc4b4;margin-top:4px}.goal593-tile .progress{margin:9px 0}.goal593-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}.goal593-actions button{min-height:31px;padding:5px 9px;font-size:11px}.goal593-form{border-top:1px solid #34513e;margin-top:13px;padding-top:11px}.goal593-form[hidden]{display:none!important}@media(max-width:360px){.goal593-grid{grid-template-columns:1fr}}
+</style><script id="micro593script">
+(function(){
+const money=document.getElementById('money');if(!money)return;
+const overview=money.querySelector('.micro-overview');
+const card=document.createElement('div');card.className='card';card.id='goal593card';card.innerHTML=`<div class="sectionhead"><h3 style="margin:0">Savings goals</h3><span class="pill">FLEXIBLE</span></div><div class="muted small" style="margin-bottom:11px">Your goal allocations at a glance. These are labels for savings you hold, not additional cash or bank-linked balances.</div><div class="goal593-grid" id="goal593grid"></div><div class="row"><b id="goal593total"></b><button class="btn tiny secondary" id="goal593add" type="button">+ Add goal</button></div><div class="goal593-form" id="goal593form" hidden><div class="two"><div class="field"><label>Goal name</label><input id="goal593name" maxlength="45" placeholder="e.g. Holiday"></div><div class="field"><label>Emoji</label><input id="goal593emoji" maxlength="8" placeholder="🏝️"></div></div><div class="two"><div class="field"><label>Target (£)</label><input id="goal593target" type="number" min="0" step="0.01"></div><div class="field"><label>Currently saved (£)</label><input id="goal593saved" type="number" min="0" step="0.01"></div></div><div class="split"><button class="btn" id="goal593save" type="button">Save goal</button><button class="btn secondary" id="goal593cancel" type="button">Cancel</button></div></div><details style="margin-top:10px"><summary class="muted">Archived goals</summary><div id="goal593archived" class="muted"></div></details><p class="muted small">Goal balances are manually entered allocations. Don't add these figures to account snapshots: that would double-count savings. Existing finance snapshots and their history remain unchanged.</p>`;
+overview.insertAdjacentElement('afterend',card);
+let editId=null;
+function getGoals(){
+ if(!Array.isArray(state.savingsGoals593)){
+ const snap=state.finance?.snapshots?.slice(-1)[0];const g=state.finance?.goals||{};
+ const emergency=Number.isFinite(Number(snap?.emergency))?Number(snap.emergency):Number(state.fund||0);
+ const car=Number(snap?.car||0);
+ state.savingsGoals593=[{id:'emergency',name:'Emergency Fund',emoji:'🐷',target:Number(g.emergencyGoal)||3000,saved:emergency,archived:false},{id:'car',name:'Car Fund',emoji:'🚙',target:Number(g.carGoal)||0,saved:car,archived:false}];save();
+ }
+ return state.savingsGoals593;
+}
+function renderGoals(){const goals=getGoals(),active=goals.filter(g=>!g.archived);document.getElementById('goal593grid').innerHTML=active.map(g=>{const target=Number(g.target)||0,saved=Number(g.saved)||0,percent=target?Math.min(100,Math.round(saved/target*100)):0;return `<div class="goal593-tile"><div class="goal593-icon">${escapeHTML(g.emoji||'🎯')}</div><div class="goal593-title">${escapeHTML(g.name)}</div><div class="goal593-amount">${moneyFormat(saved)}</div><div class="goal593-meta">${target?`${percent}% of ${moneyFormat(target)}`:'Set a target'}</div><div class="progress"><div style="width:${percent}%"></div></div><div class="goal593-actions"><button class="btn tiny secondary" data-goal-edit="${escapeHTML(g.id)}">Edit</button><button class="btn tiny secondary" data-goal-archive="${escapeHTML(g.id)}">Archive</button></div></div>`}).join('')||'<p class="muted">Add your first savings goal.</p>';
+ document.getElementById('goal593total').textContent='Allocated to goals: '+moneyFormat(active.reduce((sum,g)=>sum+Number(g.saved||0),0));
+ document.getElementById('goal593archived').innerHTML=goals.filter(g=>g.archived).map(g=>`<div class="row"><span>${escapeHTML(g.emoji)} ${escapeHTML(g.name)} · ${moneyFormat(g.saved)}</span><button class="btn tiny secondary" data-goal-restore="${escapeHTML(g.id)}">Restore</button></div>`).join('')||'No archived goals.';
+}
+function moneyFormat(v){return '£'+Number(v||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function openForm(id){editId=id||null;const g=getGoals().find(x=>x.id===id);document.getElementById('goal593name').value=g?.name||'';document.getElementById('goal593emoji').value=g?.emoji||'🎯';document.getElementById('goal593target').value=g?.target??'';document.getElementById('goal593saved').value=g?.saved??'';document.getElementById('goal593form').hidden=false;document.getElementById('goal593name').focus()}
+function closeForm(){document.getElementById('goal593form').hidden=true;editId=null}
+card.addEventListener('click',e=>{const el=e.target.closest('button');if(!el)return;const goals=getGoals();if(el.id==='goal593add')return openForm();if(el.id==='goal593cancel')return closeForm();if(el.id==='goal593save'){
+ const name=document.getElementById('goal593name').value.trim(),emoji=document.getElementById('goal593emoji').value.trim()||'🎯',target=Number(document.getElementById('goal593target').value),saved=Number(document.getElementById('goal593saved').value);if(!name||!Number.isFinite(target)||!Number.isFinite(saved)||target<0||saved<0||!document.getElementById('goal593target').value||!document.getElementById('goal593saved').value)return alert('Enter a name and valid non-negative target and savings balance.');
+ if(editId){const g=goals.find(x=>x.id===editId);if(g)Object.assign(g,{name,emoji,target,saved})}else goals.push({id:'goal-'+Date.now()+'-'+Math.floor(Math.random()*10000),name,emoji,target,saved,archived:false});save();closeForm();renderGoals();toast('Savings goal saved');return;
+ }
+ const edit=el.getAttribute('data-goal-edit'),archive=el.getAttribute('data-goal-archive'),restore=el.getAttribute('data-goal-restore');if(edit)return openForm(edit);if(archive||restore){const g=goals.find(x=>x.id===(archive||restore));if(g){g.archived=!!archive;save();renderGoals()}}
+});
+const oldRenderMoney=window.renderMoney;window.renderMoney=function(){oldRenderMoney();renderGoals()};
+const version=document.querySelector('.brand-version');if(version)version.textContent='/ V5.9.3';
+renderGoals();
+})();
 </script></body></html>
