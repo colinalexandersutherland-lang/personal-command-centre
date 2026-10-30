@@ -559,9 +559,16 @@ function getGoals(){
  }
  return state.savingsGoals593;
 }
-function renderGoals(){const goals=getGoals(),active=goals.filter(g=>!g.archived);document.getElementById('goal593grid').innerHTML=active.map(g=>{const target=Number(g.target)||0,saved=Number(g.saved)||0,percent=target?Math.min(100,Math.round(saved/target*100)):0;return `<div class="goal593-tile"><div class="goal593-icon">${escapeHTML(g.emoji||'🎯')}</div><div class="goal593-title">${escapeHTML(g.name)}</div><div class="goal593-amount">${moneyFormat(saved)}</div><div class="goal593-meta">${target?`${percent}% of ${moneyFormat(target)}`:'Set a target'}</div><div class="progress"><div style="width:${percent}%"></div></div><div class="goal593-actions"><button class="btn tiny secondary" data-goal-edit="${escapeHTML(g.id)}">Edit</button><button class="btn tiny secondary" data-goal-archive="${escapeHTML(g.id)}">Archive</button></div></div>`}).join('')||'<p class="muted">Add your first savings goal.</p>';
+
+function goalIcon594(g){
+ const common='fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"';
+ if(g.id==='emergency' || /pig|emergency/i.test(g.name)) return `<svg viewBox="0 0 64 64" aria-label="Piggy bank" role="img" ${common}><path d="M15 27c-4 1-7 5-7 10 0 3 2 5 5 6l3 9h8l2-6c6 2 13 2 19-1l2 7h8l1-14c3-3 4-6 4-10l-6-1c-2-4-5-7-9-9l2-7c-6 0-10 2-12 6-9-1-17 2-20 10Z"/><circle cx="46" cy="29" r="1.5" fill="currentColor" stroke="none"/><path d="M28 23h9M9 35c-4 0-5-4-3-6"/><circle cx="32" cy="9" r="5"/><path d="M32 7v4"/></svg>`;
+ if(g.id==='car' || /car|vehicle/i.test(g.name)) return `<svg viewBox="0 0 64 64" aria-label="Car" role="img" ${common}><path d="M11 29l5-12c1-3 4-5 7-5h18c3 0 6 2 7 5l5 12 4 4v17h-8v-6H15v6H7V33l4-4Z"/><path d="M12 29h40M18 18h28M17 38h7m16 0h7M12 44h40"/><path d="M7 29H3m54 0h4"/><path d="M24 33h16"/></svg>`;
+ return `<span aria-label="${escapeHTML(g.name)}">${escapeHTML(g.emoji||'🎯')}</span>`;
+}
+function renderGoals(){const goals=getGoals(),active=goals.filter(g=>!g.archived);document.getElementById('goal593grid').innerHTML=active.map(g=>{const target=Number(g.target)||0,saved=Number(g.saved)||0,percent=target?Math.min(100,Math.round(saved/target*100)):0;return `<div class="goal593-tile"><div class="goal593-icon">${goalIcon594(g)}</div><div class="goal593-title">${escapeHTML(g.name)}</div><div class="goal593-amount">${moneyFormat(saved)}</div><div class="goal593-meta">${target?`${percent}% of ${moneyFormat(target)}`:'Set a target'}</div><div class="progress"><div style="width:${percent}%"></div></div><div class="goal593-actions"><button class="btn tiny secondary" data-goal-edit="${escapeHTML(g.id)}">Edit</button><button class="btn tiny secondary" data-goal-archive="${escapeHTML(g.id)}">Archive</button></div></div>`}).join('')||'<p class="muted">Add your first savings goal.</p>';
  document.getElementById('goal593total').textContent='Allocated to goals: '+moneyFormat(active.reduce((sum,g)=>sum+Number(g.saved||0),0));
- document.getElementById('goal593archived').innerHTML=goals.filter(g=>g.archived).map(g=>`<div class="row"><span>${escapeHTML(g.emoji)} ${escapeHTML(g.name)} · ${moneyFormat(g.saved)}</span><button class="btn tiny secondary" data-goal-restore="${escapeHTML(g.id)}">Restore</button></div>`).join('')||'No archived goals.';
+ document.getElementById('goal593archived').innerHTML=goals.filter(g=>g.archived).map(g=>`<div class="row"><span>${escapeHTML(g.name)} · ${moneyFormat(g.saved)}</span><button class="btn tiny secondary" data-goal-restore="${escapeHTML(g.id)}">Restore</button></div>`).join('')||'No archived goals.';
 }
 function moneyFormat(v){return '£'+Number(v||0).toLocaleString('en-GB',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function openForm(id){editId=id||null;const g=getGoals().find(x=>x.id===id);document.getElementById('goal593name').value=g?.name||'';document.getElementById('goal593emoji').value=g?.emoji||'🎯';document.getElementById('goal593target').value=g?.target??'';document.getElementById('goal593saved').value=g?.saved??'';document.getElementById('goal593form').hidden=false;document.getElementById('goal593name').focus()}
@@ -573,7 +580,18 @@ card.addEventListener('click',e=>{const el=e.target.closest('button');if(!el)ret
  const edit=el.getAttribute('data-goal-edit'),archive=el.getAttribute('data-goal-archive'),restore=el.getAttribute('data-goal-restore');if(edit)return openForm(edit);if(archive||restore){const g=goals.find(x=>x.id===(archive||restore));if(g){g.archived=!!archive;save();renderGoals()}}
 });
 const oldRenderMoney=window.renderMoney;window.renderMoney=function(){oldRenderMoney();renderGoals()};
-const version=document.querySelector('.brand-version');if(version)version.textContent='/ V5.9.3';
+const version=document.querySelector('.brand-version');if(version)version.textContent='/ V5.9.4';
 renderGoals();
 })();
-</script></body></html>
+</script><style id="micro594branding">
+/* V5.9.4: brand mark and matching finance iconography */
+header .top{display:flex;align-items:center;gap:13px}
+header .top>div:first-child{min-width:0;flex:1}
+header .top:before{content:"";display:block;flex:0 0 43px;width:43px;height:49px;background:linear-gradient(135deg,#c0f8d4,#70ba94);clip-path:polygon(0 0,20% 0,50% 32%,80% 0,100% 0,100% 100%,78% 100%,78% 39%,50% 71%,22% 39%,22% 100%,0 100%);filter:drop-shadow(0 1px 4px #78d4a655)}
+header .top .pill{flex-shrink:0}
+.goal593-icon{height:39px;display:flex;align-items:center;color:#a5eac1}
+.goal593-icon svg{height:38px;width:43px;display:block;filter:drop-shadow(0 0 4px rgba(155,216,181,.13))}
+.goal593-tile{background:linear-gradient(150deg,#203b2d,#192d23);border-color:#41634c}
+.goal593-tile .progress{height:8px}
+@media(max-width:390px){header .top:before{flex-basis:35px;width:35px;height:41px}header .top{gap:9px}.goal593-icon svg{height:34px;width:38px}}
+</style></body></html>
