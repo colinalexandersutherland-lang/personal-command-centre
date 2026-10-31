@@ -313,7 +313,7 @@ function microButton(label,action){return '<button class="btn secondary" type="b
 function microRefresh(){
  const today=dateKey(), meals=(state.meals||[]).filter(x=>microDay(x)===today),expenses=(state.expenses||[]),todaySpend=expenses.filter(x=>x.date===today).reduce((s,x)=>s+microNum(x.amount),0),cal=meals.reduce((s,x)=>s+microNum(x.calories),0),prot=meals.reduce((s,x)=>s+microNum(x.protein),0);
  const plan=(state.mode==='leave'?leaveSchedule:cyprusSchedule)[day()].split(' · ')[0];
- const stats={home:[['TODAY’S PLAN',plan],['SPENT TODAY',money(todaySpend)],['SLEEP',(state.checkins[today]?.sleep||'—')+' h'],['MEALS LOGGED',String(meals.length)]],train:[['TODAY’S SESSION',plan],['WORKOUTS LOGGED',String((state.workouts||[]).length)]],food:[['CALORIES LOGGED',Math.round(cal).toLocaleString()+' kcal'],['PROTEIN LOGGED',Math.round(prot)+' g'],['MEALS TODAY',String(meals.length)],['FUEL GUIDE',document.getElementById('fuelTarget')?.textContent||'—']],money:[['SPENT TODAY',money(todaySpend)],['THIS MONTH',money(expenses.filter(x=>x.date?.slice(0,7)===today.slice(0,7)).reduce((s,x)=>s+microNum(x.amount),0))],['EMERGENCY FUND',money(state.fund)],['LOGGED EXPENSES',String(expenses.length)]],system:[['ROUTINE',state.mode==='leave'?'UK leave':'Cyprus'],['READING TARGET',state.reading+' min']]};
+ const stats={home:[['TODAY’S PLAN',plan],['SPENT TODAY',money(todaySpend)],['SLEEP',(state.checkins[today]?.sleep||'—')+' h'],['TODAY’S CALORIES',meals.some(x=>x.calories!==''&&x.calories!=null&&Number.isFinite(Number(x.calories)))?Math.round(cal).toLocaleString('en-GB')+' kcal':'— kcal']],train:[['TODAY’S SESSION',plan],['WORKOUTS LOGGED',String((state.workouts||[]).length)]],food:[['CALORIES LOGGED',Math.round(cal).toLocaleString()+' kcal'],['PROTEIN LOGGED',Math.round(prot)+' g'],['MEALS TODAY',String(meals.length)],['FUEL GUIDE',document.getElementById('fuelTarget')?.textContent||'—']],money:[['SPENT TODAY',money(todaySpend)],['THIS MONTH',money(expenses.filter(x=>x.date?.slice(0,7)===today.slice(0,7)).reduce((s,x)=>s+microNum(x.amount),0))],['EMERGENCY FUND',money(state.fund)],['LOGGED EXPENSES',String(expenses.length)]],system:[['ROUTINE',state.mode==='leave'?'UK leave':'Cyprus'],['READING TARGET',state.reading+' min']]};
  const actions={home:[['Log meal',"microOpen('meal')"],['Add expense',"microOpen('expense')"],['Log workout',"microOpen('workout')"],['Check-in',"microOpen('checkin')"],['Weekly report','microWeekly()']],train:[['Log workout',"microOpen('workout')"],['Weekly report','microWeekly()']],food:[['Log meal',"microOpen('meal')"],['Nutrition insights',"microExpand('food','Insights & history')"]],money:[['Add expense',"microOpen('expense')"],['Financial insights',"microExpand('money','Insights & history')"]],system:[['Export backup','exportData()'],['Weekly report','microWeekly()']]};
  for(const tab of Object.keys(stats)){document.getElementById('microStats-'+tab).innerHTML=stats[tab].map(x=>microStat(...x)).join('');document.getElementById('microActions-'+tab).innerHTML=actions[tab].map(x=>microButton(...x)).join('')}
 }
@@ -580,7 +580,7 @@ card.addEventListener('click',e=>{const el=e.target.closest('button');if(!el)ret
  const edit=el.getAttribute('data-goal-edit'),archive=el.getAttribute('data-goal-archive'),restore=el.getAttribute('data-goal-restore');if(edit)return openForm(edit);if(archive||restore){const g=goals.find(x=>x.id===(archive||restore));if(g){g.archived=!!archive;save();renderGoals()}}
 });
 const oldRenderMoney=window.renderMoney;window.renderMoney=function(){oldRenderMoney();renderGoals()};
-const version=document.querySelector('.brand-version');if(version)version.textContent='/ V5.9.4';
+const version=document.querySelector('.brand-version');if(version)version.textContent='/ V5.9.6';
 renderGoals();
 })();
 </script><style id="micro594branding">
@@ -594,4 +594,60 @@ header .top .pill{flex-shrink:0}
 .goal593-tile{background:linear-gradient(150deg,#203b2d,#192d23);border-color:#41634c}
 .goal593-tile .progress{height:8px}
 @media(max-width:390px){header .top:before{flex-basis:35px;width:35px;height:41px}header .top{gap:9px}.goal593-icon svg{height:34px;width:38px}}
-</style></body></html>
+</style><style id="micro595style">
+#balance595{margin:14px 0}.bal595-total{font-size:29px;font-weight:800;margin:5px 0}.bal595-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:12px 0}.bal595-box{background:#20392c;border:1px solid #3b5d49;border-radius:13px;padding:12px;min-width:0}.bal595-box strong{font-size:19px;display:block;margin:5px 0}.bal595-box small{color:#b3c6ba}.bal595-actions{display:flex;flex-wrap:wrap;gap:7px}.bal595-actions button{flex:1;min-width:100px}.bal595-form{margin-top:12px;padding:12px;border:1px solid #3b5d49;border-radius:12px}.bal595-form[hidden]{display:none}.bal595-note{font-size:12px;color:#afc6b5;line-height:1.5}.bal595-history{margin-top:12px;max-height:220px;overflow:auto}.bal595-history .entry{font-size:12px}
+</style><script id="micro595script">
+(function(){
+const section=document.getElementById('money');if(!section)return;
+const quick=section.querySelector('.micro-overview');
+const card=document.createElement('div');card.className='card';card.id='balance595';
+card.innerHTML=`<div class="sectionhead"><h3 style="margin:0">Spending accounts</h3><span class="pill">MANUAL + LOGGED</span></div>
+<div class="muted small">Your spendable balances, excluding savings and investments.</div>
+<div class="bal595-total" id="bal595total">Set account balances</div><div class="bal595-note" id="bal595stamp"></div>
+<div class="bal595-grid" id="bal595grid"></div>
+<div class="bal595-actions"><button class="btn tiny" data-bal-action="reconcile">Set actual balances</button><button class="btn tiny secondary" data-bal-action="transfer">Transfer</button><button class="btn tiny secondary" data-bal-action="income">Income / adjustment</button></div>
+<div class="bal595-form" id="bal595form" hidden></div><details style="margin-top:12px"><summary class="muted small">Account activity</summary><div id="bal595history" class="bal595-history"></div></details>
+<p class="bal595-note">Not bank-connected. Only expenses logged after enabling this feature and assigned to an account affect balances. Existing expenses are not deducted again. Savings goals are not added to this total. EUR conversion uses your manually entered GBP-per-EUR rate.</p>`;
+quick.insertAdjacentElement('afterend',card);
+const expenseField=document.createElement('div');expenseField.className='field';expenseField.innerHTML='<label>Paid from account</label><select id="bal595expenseAccount"><option value="bos">Bank of Scotland (GBP)</option><option value="rev">Revolut (EUR)</option><option value="none">Do not affect tracked balance</option></select><div class="muted small">Enter the amount in the selected account’s currency. Historical spending is unaffected.</div>';
+const expenseCategory=document.getElementById('expenseCategory');expenseCategory.closest('.two').insertAdjacentElement('afterend',expenseField);
+function init(){if(!state.balances595||!Array.isArray(state.balances595.events)){state.balances595={events:[],rate:0,created:new Date().toISOString()};save()}return state.balances595}
+function accounts(){return [{id:'bos',name:'Bank of Scotland',currency:'GBP'},{id:'rev',name:'Revolut',currency:'EUR'}]}
+function sum(id){const b=init();let value=null;for(const e of b.events){if(e.account!==id)continue;if(e.type==='reconcile')value=e.amount;else if(value!==null)value+=e.amount}if(value===null)return null;const expenseTotal=state.expenses.filter(x=>x.bal595Account===id).reduce((t,x)=>t+Number(x.bal595Amount||0),0);return value-expenseTotal}
+function fmt(n,c){return new Intl.NumberFormat('en-GB',{style:'currency',currency:c}).format(n)}
+function safe(s){return escapeHTML(s)}
+function rate(){return Number(init().rate)||0}
+function renderBalance(){const b=init(),gbp=sum('bos'),eur=sum('rev'),r=rate();const total=gbp===null||eur===null||r<=0?null:gbp+eur*r;
+document.getElementById('bal595total').textContent=total===null?'Combined total: setup required':fmt(total,'GBP');
+document.getElementById('bal595stamp').textContent='Exchange rate: '+(r?'€1 = £'+r.toFixed(4):'not set')+' · '+(b.updated?'Last balance update: '+new Date(b.updated).toLocaleString('en-GB'):'Set both balances to begin');
+document.getElementById('bal595grid').innerHTML=accounts().map(a=>{const v=sum(a.id);return '<div class="bal595-box"><small>'+a.name+'</small><strong>'+(v===null?'Not set':fmt(v,a.currency))+'</strong><small>'+(a.id==='rev'&&v!==null&&r?'≈ '+fmt(v*r,'GBP'):'Tracked balance')+'</small></div>'}).join('');
+document.getElementById('bal595history').innerHTML=b.events.slice(-12).reverse().map(e=>'<div class="entry">'+safe(e.label)+' · '+(e.type==='reconcile'?'Set to ':'')+fmt(e.amount,e.account==='rev'?'EUR':'GBP')+'<div class="muted small">'+safe(e.at||'')+'</div></div>').join('')||'<p class="muted">No account changes yet.</p>';
+}
+function openForm(type){const box=document.getElementById('bal595form');box.hidden=false;let body='';const select=(id)=>'<select id="'+id+'">'+accounts().map(a=>'<option value="'+a.id+'">'+a.name+' ('+a.currency+')</option>').join('')+'</select>';
+if(type==='reconcile')body='<h4>Match your banking apps</h4><p class="bal595-note">Set both actual spending-account balances. This resets the tracked balance to what the apps show now; older logs remain in history but are not deducted again.</p><div class="field"><label>Bank of Scotland (£)</label><input id="bal595bos" type="number" step="0.01" placeholder="Current balance"></div><div class="field"><label>Revolut (€)</label><input id="bal595rev" type="number" step="0.01" placeholder="Current balance"></div><div class="field"><label>GBP per EUR (e.g. 0.86)</label><input id="bal595rate" type="number" step="0.0001" min="0.0001" placeholder="Enter current rate"></div>';
+if(type==='income')body='<h4>Income or adjustment</h4><div class="field"><label>Account</label>'+select('bal595account')+'</div><div class="field"><label>Amount in account currency (+ income, − correction)</label><input id="bal595amount" type="number" step="0.01" placeholder="100.00"></div><div class="field"><label>Description</label><input id="bal595note" placeholder="Pay, refund, correction"></div>';
+if(type==='transfer')body='<h4>Transfer between accounts</h4><div class="field"><label>From</label>'+select('bal595from')+'</div><div class="field"><label>To</label>'+select('bal595to')+'</div><div class="field"><label>Amount sent (source currency)</label><input id="bal595sent" type="number" min="0.01" step="0.01"></div><div class="field"><label>Amount received (destination currency)</label><input id="bal595received" type="number" min="0.01" step="0.01"></div><p class="bal595-note">Enter the actual received amount from your bank to account for exchange rates or fees.</p>';
+box.innerHTML=body+'<div class="bal595-actions"><button class="btn tiny" id="bal595save">Save</button><button class="btn tiny secondary" id="bal595cancel">Cancel</button></div>';
+if(type==='reconcile'){document.getElementById('bal595bos').value=sum('bos')??'';document.getElementById('bal595rev').value=sum('rev')??'';document.getElementById('bal595rate').value=rate()||''}
+document.getElementById('bal595cancel').onclick=()=>box.hidden=true;
+document.getElementById('bal595save').onclick=()=>submit(type);
+}
+function submit(type){const b=init(),at=new Date().toISOString();const n=id=>Number(document.getElementById(id).value);const valid=id=>document.getElementById(id).value.trim()!==''&&Number.isFinite(n(id));const push=(account,amount,label,kind)=>b.events.push({account,amount,label,type:kind||'adjust',at});
+if(type==='reconcile'){if(!['bal595bos','bal595rev','bal595rate'].every(valid)||n('bal595rate')<=0)return alert('Enter both actual balances and a positive exchange rate.');
+// Expense deductions already tracked must not be re-applied after reconciliation.
+for(const x of state.expenses){if(x.bal595Account){delete x.bal595Account;delete x.bal595Amount}}
+push('bos',n('bal595bos'),'Manual balance reconciliation','reconcile');push('rev',n('bal595rev'),'Manual balance reconciliation','reconcile');b.rate=n('bal595rate');
+}else if(type==='income'){if(!valid('bal595amount')||n('bal595amount')===0)return alert('Enter a nonzero amount.');const a=document.getElementById('bal595account').value;if(sum(a)===null)return alert('Set your opening balances first.');push(a,n('bal595amount'),document.getElementById('bal595note').value.trim()||'Account adjustment')
+}else{const from=document.getElementById('bal595from').value,to=document.getElementById('bal595to').value;if(from===to)return alert('Choose two different accounts.');if(!valid('bal595sent')||!valid('bal595received')||n('bal595sent')<=0||n('bal595received')<=0)return alert('Enter positive sent and received amounts.');if(sum(from)===null||sum(to)===null)return alert('Set both account balances first.');push(from,-n('bal595sent'),'Transfer sent to '+to);push(to,n('bal595received'),'Transfer received from '+from)}
+b.updated=at;save();document.getElementById('bal595form').hidden=true;renderBalance();microRefresh();toast('Account balances updated')}
+card.addEventListener('click',e=>{const btn=e.target.closest('[data-bal-action]');if(btn)openForm(btn.dataset.balAction)});
+const originalSave=window.addExpenseV2;window.addExpenseV2=function(){const previousIndex=finEditIndex,old=previousIndex!==null?state.expenses[previousIndex]:null,account=document.getElementById('bal595expenseAccount').value,amount=Number(document.getElementById('expenseAmount').value);const before=state.expenses.length;originalSave();if(state.expenses.length!==before||previousIndex!==null&&finEditIndex===null){const x=previousIndex!==null?state.expenses[previousIndex]:state.expenses[0];if(x){if(account!=='none'&&sum(account)!==null){x.bal595Account=account;x.bal595Amount=amount}else{delete x.bal595Account;delete x.bal595Amount}save();renderBalance();microRefresh()}}};
+const originalEdit=window.finEditExpense;window.finEditExpense=function(i){originalEdit(i);document.getElementById('bal595expenseAccount').value=state.expenses[i]?.bal595Account||'none'};
+const originalRemove=window.removeItem;window.removeItem=function(k,i){const before=k==='expenses'?state.expenses.length:0;originalRemove(k,i);if(k==='expenses'&&state.expenses.length!==before){renderBalance();microRefresh()}};
+const originalRender=window.renderMoney;window.renderMoney=function(){originalRender();renderBalance()};
+const originalRefresh=window.microRefresh;window.microRefresh=function(){originalRefresh();const tiles=document.querySelectorAll('#microStats-money .micro-stat');let target=[...document.querySelectorAll('#microStats-money *')].find(el=>el.textContent?.trim()==='LOGGED EXPENSES'&&el.children.length===0);if(target){target.textContent='AVAILABLE TO SPEND';const tile=target.parentElement;const gbp=sum('bos'),eur=sum('rev');const val=gbp!==null&&eur!==null&&rate()>0?fmt(gbp+eur*rate(),'GBP'):'Set balances';const bold=tile.querySelector('b,strong,.micro-stat-value');if(bold)bold.textContent=val;else if(tile.children[1])tile.children[1].textContent=val;}};
+// Preserve account selection while editing, otherwise default to no deduction until the user chooses.
+document.getElementById('bal595expenseAccount').value='none';
+renderBalance();microRefresh();
+})();
+</script></body></html>
